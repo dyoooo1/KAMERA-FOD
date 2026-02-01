@@ -1,37 +1,55 @@
 import streamlit as st
+import pandas as pd
 from datetime import datetime
 from streamlit_js_eval import get_geolocation
+from streamlit_gsheets import GSheetsConnection
 
-st.set_page_config(page_title="FOD Camera GPS", layout="centered")
+st.set_page_config(page_title="FOD System", layout="wide")
 
-st.title("📸 Kamera Inspeksi FOD")
+st.title("🛡️ Sistem Pelaporan FOD")
 
-# 1. Ambil Lokasi
+# Koneksi ke Google Sheets (Dashboard Kantor)
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+# Ambil Lokasi
 loc = get_geolocation()
 
 if loc:
     lat = loc['coords']['latitude']
     lon = loc['coords']['longitude']
-    # Link Google Maps yang langsung menunjukkan titik merah
     maps_link = f"https://www.google.com/maps?q={lat},{lon}"
     
-    st.success(f"📍 GPS Terkunci!")
-    st.info(f"Koordinat: {lat}, {lon}")
+    st.success("📍 GPS Terkunci")
+    
+    foto = st.camera_input("Ambil Foto Bukti")
+    keterangan = st.text_input("Jenis Temuan (Misal: Baut, Kawat, Plastik)")
 
-    # 2. Kamera
-    foto = st.camera_input("Ambil Foto Temuan")
-
-    if foto:
-        waktu = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        st.image(foto, caption="Foto berhasil diambil")
-
-        # 3. Tombol WhatsApp (Ganti nomor Anda)
-        nomor_wa = "6283833012669" 
-        pesan = f"*LAPORAN FOD*%0A🕒 *Waktu:* {waktu}%0A📍 *Lokasi:* {maps_link}%0A📸 *Catatan:* Foto sudah diambil di lokasi."
-        
-        wa_url = f"https://wa.me/{nomor_wa}?text={pesan}"
-        
-        st.divider()
-        st.link_button("📲 KIRIM KOORDINAT KE WA", wa_url, use_container_width=True)
+    if st.button("KIRIM LAPORAN KE KANTOR"):
+        if foto:
+            waktu = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+            
+            # Data yang akan dilihat kantor
+            data_baru = pd.DataFrame([{
+                "Waktu": waktu,
+                "Koordinat": f"{lat}, {lon}",
+                "Link_Maps": maps_link,
+                "Temuan": keterangan
+            }])
+            
+            # Simpan ke Google Sheets
+            existing_data = conn.read()
+            updated_df = pd.concat([existing_data, data_baru], ignore_index=True)
+            conn.update(data=updated_df)
+            
+            st.balloons()
+            st.success("✅ Terkirim! Data sudah masuk ke Dashboard Kantor.")
+        else:
+            st.error("Foto wajib diambil sebagai bukti.")
 else:
-    st.warning("🔄 Sedang mengunci GPS... Mohon tunggu atau cek izin lokasi di browser.")
+    st.warning("🔄 Sedang mencari lokasi...")
+
+# --- BAGIAN DASHBOARD (Yang Dilihat Kantor) ---
+st.divider()
+st.subheader("📊 Dashboard Pantauan Kantor (Real-Time)")
+df_view = conn.read()
+st.dataframe(df_view, use_container_width=True)
