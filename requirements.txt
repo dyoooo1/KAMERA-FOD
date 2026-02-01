@@ -1,4 +1,1 @@
-streamlit
-streamlit-js-eval
 st-gsheets-connection
-pandas
