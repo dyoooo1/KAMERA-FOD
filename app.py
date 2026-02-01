@@ -8,13 +8,11 @@ st.set_page_config(page_title="FOD System", layout="wide")
 
 st.title("🛡️ Sistem Pelaporan FOD")
 
-# LINK GOOGLE SHEETS ANDA SUDAH SAYA TANAM DI SINI
+# Link Google Sheets Anda
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1Brn8tQCL6QrChfdwLxCwPCNPpAI4kE-dqTGo89rEOms/edit?usp=sharing"
 
-# Koneksi langsung tanpa Secrets
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# Ambil Lokasi
 loc = get_geolocation()
 
 if loc:
@@ -30,8 +28,6 @@ if loc:
     if st.button("KIRIM LAPORAN KE KANTOR"):
         if foto:
             waktu = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-            
-            # Data baru
             data_baru = pd.DataFrame([{
                 "Waktu": waktu,
                 "Koordinat": f"{lat}, {lon}",
@@ -40,27 +36,26 @@ if loc:
             }])
             
             try:
-                # Baca data lama dan tambah data baru
+                # Membaca data yang ada
                 existing_data = conn.read(spreadsheet=SHEET_URL)
+                # Menggabungkan data
                 updated_df = pd.concat([existing_data, data_baru], ignore_index=True)
-                
-                # Update ke Google Sheets
+                # Mengirim kembali ke Google Sheets
                 conn.update(spreadsheet=SHEET_URL, data=updated_df)
                 
                 st.balloons()
-                st.success("✅ Terkirim! Data sudah masuk ke Google Sheets.")
+                st.success("✅ Terkirim ke Google Sheets!")
             except Exception as e:
-                st.error(f"Gagal simpan: Pastikan akses Google Sheets sudah 'Editor' untuk 'Anyone with the link'")
+                st.error(f"Error: {e}")
         else:
-            st.error("Ambil foto dulu sebagai bukti.")
+            st.error("Ambil foto dulu!")
 else:
-    st.warning("🔄 Sedang mencari lokasi... Pastikan GPS HP Aktif dan Izin Browser 'Allow'")
+    st.warning("🔄 Menunggu GPS... Klik 'Allow' jika muncul permintaan izin lokasi.")
 
-# Tampilkan Dashboard di bawah
 st.divider()
-st.subheader("📊 Dashboard Pantauan (Real-Time)")
+st.subheader("📊 Dashboard Pantauan")
 try:
     df_view = conn.read(spreadsheet=SHEET_URL)
     st.dataframe(df_view, use_container_width=True)
 except:
-    st.info("Belum ada data atau koneksi sedang loading...")
+    st.info("Menghubungkan ke data...")
