@@ -41,7 +41,7 @@ if loc:
                 st.image(link_foto, caption="Foto Berhasil di-Upload")
 
                 # 3. Tombol Kirim WA
-                nomor_wa = "628123456789" # <--- GANTI NOMOR ANDA
+                nomor_wa = "6283833012669" # <--- GANTI NOMOR ANDA
                 pesan = f"--- LAPORAN FOD ---%0A🕒 Jam: {waktu}%0A📍 Lokasi: {maps_link}%0A📸 Foto: {link_foto}"
                 
                 wa_url = f"https://wa.me/{nomor_wa}?text={pesan}"
