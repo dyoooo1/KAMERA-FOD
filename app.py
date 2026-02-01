@@ -24,7 +24,7 @@ if loc:
         st.image(foto, caption="Foto Berhasil")
 
         # Masukkan nomor WA kantor/tujuan (awali dengan 62)
-        nomor_wa = "628123456789" 
+        nomor_wa = "6283833012669" 
         
         # Susun pesan
         pesan = f"*LAPORAN INSPEKSI FOD*%0A🕒 *Waktu:* {waktu}%0A📍 *Lokasi:* {maps_link}%0A📸 *Catatan:* Foto sudah diambil di lokasi."
