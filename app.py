@@ -9,7 +9,7 @@ st.set_page_config(page_title="FOD System", layout="wide")
 st.title("🛡️ Sistem Pelaporan FOD")
 
 # Koneksi ke Google Sheets (Dashboard Kantor)
-conn = st.connection("gsheets", type=GSheetsConnection)
+conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet="https://docs.google.com/spreadsheets/d/1Brn8tQCL6QrChfdwLxCwPCNPpAI4kE-dqTGo89rEOms/edit?gid=0#gid=0")
 
 # Ambil Lokasi
 loc = get_geolocation()
