@@ -1,22 +1,19 @@
 import streamlit as st
-import pandas as pd
 import requests
 import base64
 from datetime import datetime
 from streamlit_js_eval import get_geolocation
-from streamlit_gsheets import GSheetsConnection
 
 # --- KONFIGURASI ---
-# 1. Masukkan API Key ImgBB Anda di sini
+# Masukkan API Key ImgBB Anda di sini
 IMGBB_API_KEY = "d15d1dd744019c92a391bd2154d015b9"
+# Masukkan nomor WA tujuan (contoh: 62812345678)
+NOMOR_WA_TUJUAN = "6283833012669"
 
-# 2. Link Google Sheets Anda
-SHEET_URL = "https://docs.google.com/spreadsheets/d/1Brn8tQCL6QrChfdwLxCwPCNPpAI4kE-dqTGo89rEOms/edit?usp=sharing"
+st.set_page_config(page_title="FOD Reporting System", layout="centered")
+st.title("📸 Pelaporan FOD Lapangan")
 
-st.set_page_config(page_title="FOD System + Photo", layout="wide")
-st.title("🛡️ Sistem Pelaporan FOD (Auto Photo)")
-
-conn = st.connection("gsheets", type=GSheetsConnection)
+# Ambil Lokasi GPS
 loc = get_geolocation()
 
 if loc:
@@ -25,49 +22,41 @@ if loc:
     st.success("📍 GPS Terkunci")
     
     foto = st.camera_input("Ambil Foto Temuan")
-    keterangan = st.text_input("Jenis Temuan (Misal: Baut, Batu, Plastik)")
+    keterangan = st.text_input("Jenis Temuan (Contoh: Baut, Serpihan Ban)")
 
-    if st.button("KIRIM LAPORAN LENGKAP"):
+    if st.button("BUAT LAPORAN WHATSAPP"):
         if foto and keterangan:
-            with st.spinner('Sedang mengunggah foto dan menyimpan data...'):
+            with st.spinner('Mengunggah foto...'):
                 try:
-                    # PROSES UPLOAD FOTO KE IMGBB
+                    # 1. Upload ke ImgBB
                     img_bytes = foto.getvalue()
                     encoded_string = base64.b64encode(img_bytes).decode()
-                    
                     res = requests.post(
                         "https://api.imgbb.com/1/upload",
                         data={"key": IMGBB_API_KEY, "image": encoded_string}
                     )
-                    json_data = res.json()
-                    url_foto = json_data["data"]["url"] # Ini link foto aslinya
+                    url_foto = res.json()["data"]["url"]
 
-                    # PROSES SIMPAN KE GOOGLE SHEETS
+                    # 2. Susun Pesan WA
                     waktu = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-                    data_baru = pd.DataFrame([{
-                        "Waktu": waktu,
-                        "Temuan": keterangan,
-                        "Link_Maps": maps_link,
-                        "Link_Foto": url_foto  # Link foto masuk ke kolom ini
-                    }])
+                    pesan = (
+                        f"*LAPORAN TEMUAN FOD*%0A"
+                        f"--------------------------%0A"
+                        f"🕒 *Waktu:* {waktu}%0A"
+                        f"🔎 *Temuan:* {keterangan}%0A"
+                        f"📍 *Lokasi:* {maps_link}%0A"
+                        f"🖼️ *Link Foto:* {url_foto}%0A"
+                        f"--------------------------"
+                    )
                     
-                    existing_data = conn.read(spreadsheet=SHEET_URL)
-                    updated_df = pd.concat([existing_data, data_baru], ignore_index=True)
-                    conn.update(spreadsheet=SHEET_URL, data=updated_df)
+                    wa_url = f"https://wa.me/{NOMOR_WA_TUJUAN}?text={pesan}"
                     
-                    st.balloons()
-                    st.success(f"✅ Berhasil! Foto tersimpan di: {url_foto}")
+                    st.success("Foto berhasil diunggah!")
+                    st.link_button("📲 KIRIM KE WHATSAPP KANTOR", wa_url, use_container_width=True)
+                    
                 except Exception as e:
-                    st.error(f"Gagal: {e}")
+                    st.error("Gagal mengunggah foto. Cek API Key ImgBB Anda.")
         else:
-            st.warning("Foto dan Keterangan wajib diisi!")
+            st.warning("Lengkapi Foto dan Keterangan!")
 else:
-    st.info("🔄 Menunggu GPS...")
-
-st.divider()
-st.subheader("📊 Data Laporan Kantor")
-try:
-    df_view = conn.read(spreadsheet=SHEET_URL)
-    st.dataframe(df_view, use_container_width=True)
-except:
-    st.write("Menghubungkan ke database...")
+    st.info("🔄 Mencari sinyal GPS... Pastikan izin lokasi aktif.")
