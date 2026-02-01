@@ -8,8 +8,11 @@ st.set_page_config(page_title="FOD System", layout="wide")
 
 st.title("🛡️ Sistem Pelaporan FOD")
 
-# Koneksi ke Google Sheets (Dashboard Kantor)
-conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet="https://docs.google.com/spreadsheets/d/1Brn8tQCL6QrChfdwLxCwPCNPpAI4kE-dqTGo89rEOms/edit?gid=0#gid=0")
+# LINK GOOGLE SHEETS ANDA SUDAH SAYA TANAM DI SINI
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1Brn8tQCL6QrChfdwLxCwPCNPpAI4kE-dqTGo89rEOms/edit?usp=sharing"
+
+# Koneksi langsung tanpa Secrets
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 # Ambil Lokasi
 loc = get_geolocation()
@@ -22,13 +25,13 @@ if loc:
     st.success("📍 GPS Terkunci")
     
     foto = st.camera_input("Ambil Foto Bukti")
-    keterangan = st.text_input("Jenis Temuan (Misal: Baut, Kawat, Plastik)")
+    keterangan = st.text_input("Jenis Temuan (Misal: Baut, Kawat, Batu)")
 
     if st.button("KIRIM LAPORAN KE KANTOR"):
         if foto:
             waktu = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             
-            # Data yang akan dilihat kantor
+            # Data baru
             data_baru = pd.DataFrame([{
                 "Waktu": waktu,
                 "Koordinat": f"{lat}, {lon}",
@@ -36,20 +39,28 @@ if loc:
                 "Temuan": keterangan
             }])
             
-            # Simpan ke Google Sheets
-            existing_data = conn.read()
-            updated_df = pd.concat([existing_data, data_baru], ignore_index=True)
-            conn.update(data=updated_df)
-            
-            st.balloons()
-            st.success("✅ Terkirim! Data sudah masuk ke Dashboard Kantor.")
+            try:
+                # Baca data lama dan tambah data baru
+                existing_data = conn.read(spreadsheet=SHEET_URL)
+                updated_df = pd.concat([existing_data, data_baru], ignore_index=True)
+                
+                # Update ke Google Sheets
+                conn.update(spreadsheet=SHEET_URL, data=updated_df)
+                
+                st.balloons()
+                st.success("✅ Terkirim! Data sudah masuk ke Google Sheets.")
+            except Exception as e:
+                st.error(f"Gagal simpan: Pastikan akses Google Sheets sudah 'Editor' untuk 'Anyone with the link'")
         else:
-            st.error("Foto wajib diambil sebagai bukti.")
+            st.error("Ambil foto dulu sebagai bukti.")
 else:
-    st.warning("🔄 Sedang mencari lokasi...")
+    st.warning("🔄 Sedang mencari lokasi... Pastikan GPS HP Aktif dan Izin Browser 'Allow'")
 
-# --- BAGIAN DASHBOARD (Yang Dilihat Kantor) ---
+# Tampilkan Dashboard di bawah
 st.divider()
-st.subheader("📊 Dashboard Pantauan Kantor (Real-Time)")
-df_view = conn.read()
-st.dataframe(df_view, use_container_width=True)
+st.subheader("📊 Dashboard Pantauan (Real-Time)")
+try:
+    df_view = conn.read(spreadsheet=SHEET_URL)
+    st.dataframe(df_view, use_container_width=True)
+except:
+    st.info("Belum ada data atau koneksi sedang loading...")
